@@ -5,4 +5,4 @@ datetime
 yfinance
 tweepy
 textblob
-re
+ipykernel

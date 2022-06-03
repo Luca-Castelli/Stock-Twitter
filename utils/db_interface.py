@@ -1,5 +1,5 @@
 from contextlib import contextmanager
-from typing import Any
+from typing import Any, Dict, List
 
 import pandas as pd
 import psycopg2
@@ -38,6 +38,26 @@ def execute_df_upsert(
     tuples = [tuple(x) for x in df.to_numpy()]
     # Comma-separated dataframe columns
     cols = ",".join(list(df.columns))
+    # SQL quert to execute
+    query = "INSERT INTO %s(%s) VALUES %%s ON CONFLICT(%s) DO NOTHING" % (
+        table_name,
+        cols,
+        constraint_key,
+    )
+    extras.execute_values(curr, query, tuples)
+
+
+def execute_json_upsert(
+    json_data: List[Dict],
+    constraint_key: str,
+    table_name: str,
+    curr: Any,
+) -> None:
+
+    # Create a list of tupples from the json object
+    tuples = [tuple(x.values()) for x in json_data]
+    # Comma-separated json object keys
+    cols = ",".join(json_data[0].keys())
     # SQL quert to execute
     query = "INSERT INTO %s(%s) VALUES %%s ON CONFLICT(%s) DO NOTHING" % (
         table_name,

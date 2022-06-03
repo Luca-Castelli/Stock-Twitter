@@ -1,5 +1,5 @@
-import datetime as dt
 import re
+from datetime import datetime
 
 import tweepy as tw
 from textblob import TextBlob
@@ -7,7 +7,7 @@ from textblob import TextBlob
 from config import TwitterParams
 
 
-class TwitterClient(object):
+class TwitterConnection(object):
     def __init__(self, twitter_params: TwitterParams):
         API_KEY = twitter_params.twitter_api_key
         API_SECRET = twitter_params.twitter_api_secret
@@ -47,7 +47,7 @@ class TwitterClient(object):
         else:
             return "negative"
 
-    def get_tweets(self, query, count=1000):
+    def get_tweets(self, query: str, count: int = 1000, until: str = None):
         """
         Main function to fetch tweets and parse them.
         """
@@ -56,9 +56,14 @@ class TwitterClient(object):
 
         try:
             # call twitter api to fetch tweets
-            fetched_tweets = tw.Cursor(
-                self.api.search_tweets, q=query, lang="en"
-            ).items(count)
+            if until:
+                fetched_tweets = tw.Cursor(
+                    self.api.search_tweets, q=query, lang="en", until=until
+                ).items(count)
+            else:
+                fetched_tweets = tw.Cursor(
+                    self.api.search_tweets, q=query, lang="en"
+                ).items(count)
 
             # parsing tweets one by one
             for tweet in fetched_tweets:
@@ -66,9 +71,7 @@ class TwitterClient(object):
                     "twitter_id": tweet.id,
                     "username": tweet.user.name,
                     "text": tweet.text,
-                    "created_at": dt.datetime.strftime(
-                        tweet.created_at, "%Y%m%d-%H%M%S"
-                    ),
+                    "created_at": datetime.strftime(tweet.created_at, "%Y%m%d"),
                     "sentiment": self.get_tweet_sentiment(tweet.text),
                 }
 

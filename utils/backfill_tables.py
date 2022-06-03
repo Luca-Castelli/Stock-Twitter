@@ -1,10 +1,11 @@
+from datetime import datetime, timedelta
+
 import pandas as pd
-import psycopg2
-import psycopg2.extras as extras
 import yfinance as yf
 
-from config import get_oltp_creds
-from db_interface import DBConnection, execute_df_upsert
+from config import get_oltp_creds, get_twitter_creds
+from db_interface import DBConnection, execute_df_upsert, execute_json_upsert
+from twitter_interace import TwitterConnection
 
 
 def backfill_stock_data(ticker: str, name: str) -> None:
@@ -24,6 +25,7 @@ def backfill_stock_data(ticker: str, name: str) -> None:
 
 
 def get_stock_prices(ticker: str) -> pd.DataFrame:
+
     raw_data = yf.download(tickers=ticker, period="1y", interval="1d")
     data = pd.DataFrame(columns=["ticker", "timestamp", "price"])
     data["timestamp"] = raw_data.index
@@ -32,9 +34,24 @@ def get_stock_prices(ticker: str) -> pd.DataFrame:
     return data
 
 
-def backfill_twitter_data():
-    pass
+def backfill_twitter_data(query: str, count: int):
+
+    twitter = TwitterConnection(get_twitter_creds())
+    tweets = []
+    # Free Twitter search API can only go back 7 days
+    for i in range(7, -1, -1):
+        date = (datetime.now() - timedelta(days=i)).strftime("%Y-%m-%d")
+        tweets += twitter.get_tweets(query=query, count=count, until=date)
+
+    with DBConnection(get_oltp_creds()).managed_cursor() as curr:
+        execute_json_upsert(
+            json_data=tweets,
+            table_name="tweet",
+            constraint_key="twitter_id",
+            curr=curr,
+        )
 
 
 if __name__ == "__main__":
-    backfill_stock_data("URA", "Uranium ETF")
+    backfill_stock_data(ticker="URA", name="Uranium ETF")
+    backfill_twitter_data(query="uranium", count=1000)
