@@ -1,31 +1,47 @@
+from contextlib import contextmanager
+from typing import Any
+
 import pandas as pd
 import psycopg2
 import psycopg2.extras as extras
 
-from db_config import get_db_creds
-from db_connection import DBConnection
+from config import DbParams
 
 
-def execute_query(query):
-    with DBConnection(get_db_creds()).managed_cursor() as curr:
-        curr.execute(query)
-    print("execute_query() done")
+class DBConnection:
+    def __init__(self, db_params: DbParams):
+
+        self.conn_url = (
+            f"postgresql://{db_params.user}:{db_params.password}@"
+            f"{db_params.host}:{db_params.port}/{db_params.db}"
+        )
+
+    @contextmanager
+    def managed_cursor(self, cursor_factory=None):
+        self.conn = psycopg2.connect(self.conn_url)
+        self.conn.autocommit = True
+        self.curr = self.conn.cursor(cursor_factory=cursor_factory)
+        try:
+            yield self.curr
+        finally:
+            self.curr.close()
+            self.conn.close()
 
 
-def execute_df_upsert(df, key, table):
-    """
-    Using psycopg2.extras.execute_values() to insert the dataframe
-    """
+def execute_df_upsert(
+    df: pd.DataFrame,
+    constraint_key: str,
+    table_name: str,
+    curr: Any,
+) -> None:
     # Create a list of tupples from the dataframe values
     tuples = [tuple(x) for x in df.to_numpy()]
     # Comma-separated dataframe columns
     cols = ",".join(list(df.columns))
     # SQL quert to execute
     query = "INSERT INTO %s(%s) VALUES %%s ON CONFLICT(%s) DO NOTHING" % (
-        table,
+        table_name,
         cols,
-        key,
+        constraint_key,
     )
-    with DBConnection(get_db_creds()).managed_cursor() as curr:
-        extras.execute_values(curr, query, tuples)
-        print("execute_df_upsert() done")
+    extras.execute_values(curr, query, tuples)

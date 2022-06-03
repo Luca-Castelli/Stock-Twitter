@@ -1,10 +1,9 @@
-from db_interface import execute_query
+from config import get_oltp_creds
+from db_interface import DBConnection
 
 
-def init_stock_data_table():
-    """
-    temp
-    """
+def init_stock_data_table() -> None:
+
     query_delete_stock_stock_price = """
         DROP TABLE IF EXISTS stock, stock_price;
         """
@@ -27,15 +26,15 @@ def init_stock_data_table():
 
             );
         """
-    execute_query(query_delete_stock_stock_price)
-    execute_query(query_create_stock)
-    execute_query(query_create_stock_price)
+
+    with DBConnection(get_oltp_creds()).managed_cursor() as curr:
+        curr.execute(query_delete_stock_stock_price)
+        curr.execute(query_create_stock)
+        curr.execute(query_create_stock_price)
 
 
-def init_twitter_data_table():
-    """
-    temp
-    """
+def init_twitter_data_table() -> None:
+
     query_delete_tweet = """
         DROP TABLE IF EXISTS tweet;
         """
@@ -50,8 +49,9 @@ def init_twitter_data_table():
             PRIMARY KEY(id)
             );
         """
-    execute_query(query_delete_tweet)
-    execute_query(query_create_tweet)
+    with DBConnection(get_oltp_creds()).managed_cursor() as curr:
+        curr.execute(query_delete_tweet)
+        curr.execute(query_create_tweet)
 
 
 if __name__ == "__main__":
