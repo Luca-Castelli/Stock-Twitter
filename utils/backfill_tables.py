@@ -39,7 +39,7 @@ def backfill_twitter_data(query: str, count: int):
     twitter = TwitterConnection(get_twitter_creds())
     tweets = []
     # Free Twitter search API can only go back 7 days
-    for i in range(7, -1, -1):
+    for i in range(6, -1, -1):
         date = (datetime.now() - timedelta(days=i)).strftime("%Y-%m-%d")
         tweets += twitter.get_tweets(query=query, count=count, until=date)
 
@@ -54,4 +54,4 @@ def backfill_twitter_data(query: str, count: int):
 
 if __name__ == "__main__":
     backfill_stock_data(ticker="URA", name="Uranium ETF")
-    backfill_twitter_data(query="uranium", count=1000)
+    backfill_twitter_data(query="uranium", count=200)
