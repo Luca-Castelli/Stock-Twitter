@@ -1,5 +1,5 @@
-from config import get_oltp_creds
-from db_interface import DBConnection
+from utils.config import get_oltp_creds
+from utils.db_interface import DBConnection
 
 
 def init_stock_data_table() -> None:

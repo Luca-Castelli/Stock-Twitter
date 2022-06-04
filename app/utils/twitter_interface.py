@@ -4,7 +4,7 @@ from datetime import datetime
 import tweepy as tw
 from textblob import TextBlob
 
-from config import TwitterParams
+from utils.config import TwitterParams
 
 
 class TwitterConnection(object):

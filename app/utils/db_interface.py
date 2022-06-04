@@ -5,7 +5,7 @@ import pandas as pd
 import psycopg2
 import psycopg2.extras as extras
 
-from config import DbParams
+from utils.config import DbParams
 
 
 class DBConnection:

@@ -3,9 +3,9 @@ from datetime import datetime, timedelta
 import pandas as pd
 import yfinance as yf
 
-from config import get_oltp_creds, get_twitter_creds
-from db_interface import DBConnection, execute_df_upsert, execute_json_upsert
-from twitter_interface import TwitterConnection
+from utils.config import get_oltp_creds, get_twitter_creds
+from utils.db_interface import DBConnection, execute_df_upsert, execute_json_upsert
+from utils.twitter_interface import TwitterConnection
 
 
 def backfill_stock_data(ticker: str, name: str) -> None:

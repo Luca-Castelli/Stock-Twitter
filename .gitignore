@@ -1,2 +1,6 @@
-venv/
+app/venv/
+app/utils/__pycache__
+
 lambda/lambda_layers/python/
+
+streamlit/utils/__pycache__
