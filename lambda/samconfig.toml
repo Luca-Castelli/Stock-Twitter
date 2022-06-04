@@ -1,0 +1,12 @@
+version = 0.1
+[default]
+[default.deploy]
+[default.deploy.parameters]
+stack_name = "stock-twitter-lambda-sam"
+s3_bucket = "aws-sam-cli-managed-default-samclisourcebucket-fxc4yv6ew1bi"
+s3_prefix = "stock-twitter-lambda-sam"
+region = "us-east-1"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM"
+disable_rollback = true
+image_repositories = []

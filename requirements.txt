@@ -1,8 +1,7 @@
+pandas
 psycopg2-binary
 boto3
-pandas
 datetime
 yfinance
 tweepy
 textblob
-ipykernel

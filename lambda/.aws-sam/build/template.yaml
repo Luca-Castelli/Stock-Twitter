@@ -1,0 +1,32 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Resources:
+  StockDataFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: StockDataFunction
+      Handler: lambda.lambda_handler
+      Runtime: python3.9
+      Timeout: 60
+      Layers:
+      - Ref: MyLambdaLayer
+    Metadata:
+      SamResourceId: StockDataFunction
+  TwitterDataFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: TwitterDataFunction
+      Handler: lambda.lambda_handler
+      Runtime: python3.9
+      Timeout: 60
+      Layers:
+      - Ref: MyLambdaLayer
+    Metadata:
+      SamResourceId: TwitterDataFunction
+  MyLambdaLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: MyLambdaLayer
+      ContentUri: ..\..\lambda_layers\my_lambda_layer.zip
+      CompatibleRuntimes:
+      - python3.9

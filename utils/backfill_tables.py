@@ -5,7 +5,7 @@ import yfinance as yf
 
 from config import get_oltp_creds, get_twitter_creds
 from db_interface import DBConnection, execute_df_upsert, execute_json_upsert
-from twitter_interace import TwitterConnection
+from twitter_interface import TwitterConnection
 
 
 def backfill_stock_data(ticker: str, name: str) -> None:
@@ -39,7 +39,7 @@ def backfill_twitter_data(query: str, count: int):
     twitter = TwitterConnection(get_twitter_creds())
     tweets = []
     # Free Twitter search API can only go back 7 days
-    for i in range(6, -1, -1):
+    for i in range(7, -1, -1):
         date = (datetime.now() - timedelta(days=i)).strftime("%Y-%m-%d")
         tweets += twitter.get_tweets(query=query, count=count, until=date)
 
