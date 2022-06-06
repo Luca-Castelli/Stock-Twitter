@@ -51,8 +51,9 @@ class TwitterConnection(object):
         """
         Main function to fetch tweets and parse them.
         """
-        # empty list to store parsed tweets
+        # empty lists to store parsed and raw tweets
         tweets_data = []
+        raw_tweets = []
 
         try:
             # call twitter api to fetch tweets
@@ -83,8 +84,11 @@ class TwitterConnection(object):
                 else:
                     tweets_data.append(single_tweet_data)
 
-            # return parsed tweets
-            return tweets_data
+                # keep raw tweet
+                raw_tweets.append(tweet._json)
+
+            # return parsed tweets and raw tweets
+            return (tweets_data, raw_tweets)
 
         except tw.TweepError as e:
             # print error (if any)
