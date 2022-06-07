@@ -6,8 +6,18 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
 import streamlit as st
-from utils.config import get_oltp_creds
+from utils.config import get_olap_creds, get_oltp_creds
 from utils.db_interface import DBConnection
+
+
+def stream_tweet_data():
+    with DBConnection(get_olap_creds()).managed_cursor() as curr:
+        curr.execute("SELECT * FROM tweet_stream ORDER BY created_at DESC LIMIT 5;")
+        data = curr.fetchall()
+        cols = [i[0] for i in curr.description]
+    df = pd.DataFrame(data, columns=cols)
+    df = df.set_index(df.id).drop(columns=["id"], axis=1)
+    return df
 
 
 @st.cache(ttl=60 * 60)
@@ -78,6 +88,12 @@ def combine_data_sets(stock_price_df, tweet_sentiment_df):
 #
 
 st.title("Uranium Tweet Sentiment")
+
+# creating a single-element container.
+placeholder = st.empty()
+with placeholder.container():
+    data = stream_tweet_data()
+    st.write(data)
 
 data_load_state = st.text("Loading data...")
 tweet_data = load_tweet_data()

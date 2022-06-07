@@ -1,0 +1,82 @@
+version: '3.8'
+
+services:
+
+  postgres:
+    container_name: postgres
+    image: postgres:14.1-alpine
+    restart: always
+    environment:
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=admin
+      - POSTGRES_DB=postgres
+    ports:
+      - '5432:5432'
+    volumes: 
+      - ./app/streaming_db_data:/var/lib/postgresql/data
+
+  zookeeper:
+    container_name: zookeper
+    image: 'bitnami/zookeeper:latest'
+    restart: always
+    ports:
+      - 2181:2181
+    environment:
+      - ALLOW_ANONYMOUS_LOGIN=yes
+
+  kafka:
+    container_name: kafka
+    image: bitnami/kafka:latest
+    depends_on:
+      - zookeeper
+    ports:
+      - 9092:9092
+    environment:
+      - KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181
+      - ALLOW_PLAINTEXT_LISTENER=yes
+      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+      - KAFKA_LISTENERS=INTERNAL://kafka:9093,EXTERNAL://localhost:9092
+      - KAFKA_ADVERTISED_LISTENERS=INTERNAL://kafka:9093,EXTERNAL://localhost:9092
+      - KAFKA_INTER_BROKER_LISTENER_NAME=INTERNAL
+
+  producer:
+    container_name: producer
+    build:
+      context: ./app/producer/
+      dockerfile: Dockerfile
+    tty: true
+    depends_on:
+      - postgres
+      - kafka
+    volumes:
+      - ./app/producer/:/usr/src/app
+      - ~/.aws/:/root/.aws:ro
+
+  consumer:
+    container_name: consumer
+    build:
+      context: ./app/consumer/
+      dockerfile: Dockerfile
+    tty: true
+    depends_on:
+      - postgres
+      - kafka
+    volumes:
+      - ./app/consumer/:/usr/src/app
+      - ~/.aws/:/root/.aws:ro
+
+  streamlit:
+    container_name: streamlit
+    build:
+      context: ./app/streamlit/
+      dockerfile: Dockerfile
+    tty: true
+    ports:
+      - 8501:8501
+    depends_on:
+      - postgres
+      - kafka
+      - producer
+      - consumer
+    volumes:
+      - ~/.aws/:/root/.aws:ro

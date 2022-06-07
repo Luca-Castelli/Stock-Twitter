@@ -32,11 +32,11 @@ def get_oltp_creds() -> DbParams:
 def get_olap_creds() -> DbParams:
 
     db_params = DbParams(
-        user="",
-        password="",
-        db="",
-        host="",
-        port="",
+        user="admin",
+        password="admin",
+        db="postgres",
+        host="postgres",
+        port="5432",
     )
 
     return db_params
@@ -72,7 +72,7 @@ def get_twitter_creds() -> TwitterParams:
 
 def get_ssm_params(names: List[str]) -> List[str]:
 
-    aws_client = boto3.client("ssm")
+    aws_client = boto3.client("ssm", region_name="us-east-1")
     parameters = aws_client.get_parameters(
         Names=names,
         WithDecryption=True,

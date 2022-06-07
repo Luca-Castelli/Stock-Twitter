@@ -6,4 +6,3 @@ yfinance
 tweepy
 textblob
 kafka-python
-ipykernel

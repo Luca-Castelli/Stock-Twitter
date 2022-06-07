@@ -1,4 +1,4 @@
-from utils.config import get_oltp_creds
+from utils.config import get_olap_creds, get_oltp_creds
 from utils.db_interface import DBConnection
 
 
@@ -54,6 +54,27 @@ def init_twitter_data_table() -> None:
         curr.execute(query_create_tweet)
 
 
+def init_twitter_streaming_table() -> None:
+
+    query_delete_tweet_stream = """
+        DROP TABLE IF EXISTS tweet_stream;
+        """
+    query_create_tweet_stream = """
+        CREATE TABLE tweet_stream(
+            id SERIAL,
+            twitter_id BIGSERIAL UNIQUE,
+            username TEXT,
+            text TEXT,
+            created_at TIMESTAMP,
+            PRIMARY KEY(id)
+            );
+        """
+    with DBConnection(get_olap_creds()).managed_cursor() as curr:
+        curr.execute(query_delete_tweet_stream)
+        curr.execute(query_create_tweet_stream)
+
+
 if __name__ == "__main__":
-    init_stock_data_table()
-    init_twitter_data_table()
+    # init_stock_data_table()
+    # init_twitter_data_table()
+    init_twitter_streaming_table()

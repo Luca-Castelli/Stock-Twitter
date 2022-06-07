@@ -1,6 +1,8 @@
 app/venv/
 app/utils/__pycache__
+app/consumer/utils/__pycache__
+app/producer/utils/__pycache__
+app/streaming_db_data/
+app/streamlit/utils/__pycache__
 
 lambda/lambda_layers/python/
-
-streamlit/utils/__pycache__
