@@ -5,14 +5,14 @@ ENV VIRTUAL_ENV=/venv
 RUN virtualenv venv -p python3
 ENV PATH="VIRTUAL_ENV/bin:$PATH"
 
-WORKDIR /app
-ADD . /app
+WORKDIR /usr/src/app
+ADD . /usr/src/app
 
 # Install dependencies
 RUN pip install -r requirements.txt
 
 # copying all files over
-COPY . /app
+COPY . /usr/src/app
 
 # Expose port 
 ENV PORT 8501

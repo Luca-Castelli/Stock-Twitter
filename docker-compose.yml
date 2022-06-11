@@ -61,6 +61,7 @@ services:
     depends_on:
       - postgres
       - kafka
+      - producer
     volumes:
       - ./app/consumer/:/usr/src/app
       - ~/.aws/:/root/.aws:ro
@@ -79,4 +80,5 @@ services:
       - producer
       - consumer
     volumes:
+      - ./app/streamlit/:/usr/src/app
       - ~/.aws/:/root/.aws:ro
