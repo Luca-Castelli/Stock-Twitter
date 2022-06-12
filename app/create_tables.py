@@ -1,8 +1,9 @@
-from utils.config import get_olap_creds, get_oltp_creds
+from utils.config import get_batch_creds, get_stream_creds
 from utils.db_interface import DBConnection
 
 
 def init_stock_data_table() -> None:
+    """Initialize stock and stock_price tables in batch DB."""
 
     query_delete_stock_stock_price = """
         DROP TABLE IF EXISTS stock, stock_price;
@@ -26,14 +27,14 @@ def init_stock_data_table() -> None:
 
             );
         """
-
-    with DBConnection(get_oltp_creds()).managed_cursor() as curr:
+    with DBConnection(get_batch_creds()).managed_cursor() as curr:
         curr.execute(query_delete_stock_stock_price)
         curr.execute(query_create_stock)
         curr.execute(query_create_stock_price)
 
 
 def init_twitter_data_table() -> None:
+    """Initialize tweet table in batch DB."""
 
     query_delete_tweet = """
         DROP TABLE IF EXISTS tweet;
@@ -49,12 +50,13 @@ def init_twitter_data_table() -> None:
             PRIMARY KEY(id)
             );
         """
-    with DBConnection(get_oltp_creds()).managed_cursor() as curr:
+    with DBConnection(get_batch_creds()).managed_cursor() as curr:
         curr.execute(query_delete_tweet)
         curr.execute(query_create_tweet)
 
 
 def init_twitter_streaming_table() -> None:
+    """Initialize tweet table in stream DB."""
 
     query_delete_tweet_stream = """
         DROP TABLE IF EXISTS tweet_stream;
@@ -69,7 +71,7 @@ def init_twitter_streaming_table() -> None:
             PRIMARY KEY(id)
             );
         """
-    with DBConnection(get_olap_creds()).managed_cursor() as curr:
+    with DBConnection(get_stream_creds()).managed_cursor() as curr:
         curr.execute(query_delete_tweet_stream)
         curr.execute(query_create_tweet_stream)
 

@@ -5,19 +5,20 @@ import boto3
 import pandas as pd
 import yfinance as yf
 
-from utils.config import get_oltp_creds, get_twitter_creds
+from utils.config import get_batch_creds, get_twitter_creds
 from utils.db_interface import DBConnection, execute_df_upsert, execute_json_upsert
 from utils.twitter_interface import TwitterConnection
 
 
 def backfill_stock_data(ticker: str, name: str) -> None:
+    """Backfill stock and stock_price tables going back 1y."""
 
     query_insert = f"INSERT INTO stock(ticker, name) VALUES('{ticker}', '{name}') ON CONFLICT(ticker) DO NOTHING;"
-    with DBConnection(get_oltp_creds()).managed_cursor() as curr:
+    with DBConnection(get_batch_creds()).managed_cursor() as curr:
         curr.execute(query_insert)
 
     stock_price_data = get_stock_prices(ticker)
-    with DBConnection(get_oltp_creds()).managed_cursor() as curr:
+    with DBConnection(get_batch_creds()).managed_cursor() as curr:
         execute_df_upsert(
             df=stock_price_data,
             table_name="stock_price",
@@ -27,6 +28,7 @@ def backfill_stock_data(ticker: str, name: str) -> None:
 
 
 def get_stock_prices(ticker: str) -> pd.DataFrame:
+    """Fetch stock prices from Yahoo for a period of 1y and interval of 1d."""
 
     raw_data = yf.download(tickers=ticker, period="1y", interval="1d")
     data = pd.DataFrame(columns=["ticker", "timestamp", "price"])
@@ -37,6 +39,7 @@ def get_stock_prices(ticker: str) -> pd.DataFrame:
 
 
 def backfill_twitter_data(query: str, count: int) -> None:
+    """Backfill tweet table going back 7 days (Twitter API limit)."""
 
     s3_bucket = "stock-twitter-s3"
 
@@ -53,7 +56,7 @@ def backfill_twitter_data(query: str, count: int) -> None:
         upload_to_S3(s3_bucket, s3_key, data)
 
     # Insert processed tweets into OLTP database (AWS RDS)
-    with DBConnection(get_oltp_creds()).managed_cursor() as curr:
+    with DBConnection(get_batch_creds()).managed_cursor() as curr:
         execute_json_upsert(
             json_data=processed_tweets,
             table_name="tweet",

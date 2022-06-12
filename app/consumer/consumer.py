@@ -34,7 +34,7 @@ def stream_tweets_consume():
         ]
         print(single_tweet_data)
         with db_interface.DBConnection(
-            config.get_olap_creds()
+            config.get_batch_creds()
         ).managed_cursor() as curr:
             db_interface.execute_json_upsert(
                 single_tweet_data, "twitter_id", "tweet_stream", curr

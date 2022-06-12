@@ -5,12 +5,13 @@ import pandas as pd
 import psycopg2
 import psycopg2.extras as extras
 
-from utils.config import DbParams
+import utils.config as config
 
 
 class DBConnection:
-    def __init__(self, db_params: DbParams):
+    """To faciliate DB connection."""
 
+    def __init__(self, db_params: config.DbParams):
         self.conn_url = (
             f"postgresql://{db_params.user}:{db_params.password}@"
             f"{db_params.host}:{db_params.port}/{db_params.db}"
@@ -34,11 +35,10 @@ def execute_df_upsert(
     table_name: str,
     curr: Any,
 ) -> None:
-    # Create a list of tupples from the dataframe values
+    """Upsert dataframe into table_name within database. If constraint_key already exists, do nothing."""
+
     tuples = [tuple(x) for x in df.to_numpy()]
-    # Comma-separated dataframe columns
     cols = ",".join(list(df.columns))
-    # SQL quert to execute
     query = "INSERT INTO %s(%s) VALUES %%s ON CONFLICT(%s) DO NOTHING" % (
         table_name,
         cols,
@@ -53,12 +53,10 @@ def execute_json_upsert(
     table_name: str,
     curr: Any,
 ) -> None:
+    """Upsert JSON object into table_name within database. If constraint_key already exists, do nothing."""
 
-    # Create a list of tupples from the json object
     tuples = [tuple(x.values()) for x in json_data]
-    # Comma-separated json object keys
     cols = ",".join(json_data[0].keys())
-    # SQL quert to execute
     query = "INSERT INTO %s(%s) VALUES %%s ON CONFLICT(%s) DO NOTHING" % (
         table_name,
         cols,
