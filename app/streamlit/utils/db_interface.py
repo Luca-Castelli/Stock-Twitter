@@ -9,7 +9,7 @@ import utils.config as config
 
 
 class DBConnection:
-    """To faciliate DB connection."""
+    """Object to handle a connection to a DB. Must pass in a DbParams object when initializing."""
 
     def __init__(self, db_params: config.DbParams):
         self.conn_url = (
@@ -19,6 +19,7 @@ class DBConnection:
 
     @contextmanager
     def managed_cursor(self, cursor_factory=None):
+        """Method returns DB cursor."""
         self.conn = psycopg2.connect(self.conn_url)
         self.conn.autocommit = True
         self.curr = self.conn.cursor(cursor_factory=cursor_factory)
@@ -30,36 +31,34 @@ class DBConnection:
 
 
 def execute_df_upsert(
-    df: pd.DataFrame,
-    constraint_key: str,
-    table_name: str,
-    curr: Any,
+    df: pd.DataFrame, constraint_key: str, table_name: str, curr: Any
 ) -> None:
-    """Upsert dataframe into table_name within database. If constraint_key already exists, do nothing."""
+    """Upserts a dataframe into table_name belonging to curr's DB. If constraint_key already exists, do nothing."""
 
     tuples = [tuple(x) for x in df.to_numpy()]
     cols = ",".join(list(df.columns))
+
     query = "INSERT INTO %s(%s) VALUES %%s ON CONFLICT(%s) DO NOTHING" % (
         table_name,
         cols,
         constraint_key,
     )
+
     extras.execute_values(curr, query, tuples)
 
 
 def execute_json_upsert(
-    json_data: List[Dict],
-    constraint_key: str,
-    table_name: str,
-    curr: Any,
+    json_data: List[Dict], constraint_key: str, table_name: str, curr: Any
 ) -> None:
-    """Upsert JSON object into table_name within database. If constraint_key already exists, do nothing."""
+    """Upsert a JSON object into table_name belonging to curr's DB. If constraint_key already exists, do nothing."""
 
     tuples = [tuple(x.values()) for x in json_data]
     cols = ",".join(json_data[0].keys())
+
     query = "INSERT INTO %s(%s) VALUES %%s ON CONFLICT(%s) DO NOTHING" % (
         table_name,
         cols,
         constraint_key,
     )
+
     extras.execute_values(curr, query, tuples)

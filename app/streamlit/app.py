@@ -1,92 +1,118 @@
 import time
-from datetime import datetime
+import warnings
 
-import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
 import streamlit as st
-from utils.config import get_olap_creds, get_oltp_creds
-from utils.db_interface import DBConnection
+from utils import config, db_interface
 
 
-def get_stream_tweet_data():
-    with DBConnection(get_olap_creds()).managed_cursor() as curr:
+def get_stream_tweet_data() -> pd.DataFrame:
+    """Fetches data from the tweet_stream table in the stream DB."""
+
+    with db_interface.DBConnection(config.get_stream_creds()).managed_cursor() as curr:
         curr.execute(
-            "SELECT created_at, username, text FROM tweet_stream ORDER BY created_at DESC LIMIT 5;"
+            "SELECT created_at, username, verified_user, followers, text FROM tweet_stream ORDER BY created_at DESC;"
         )
         data = curr.fetchall()
         cols = [i[0] for i in curr.description]
+
     df = pd.DataFrame(data, columns=cols)
+    df["created_at"] = (
+        df["created_at"]
+        .dt.tz_localize("UTC")
+        .dt.tz_convert("US/Eastern")
+        .dt.strftime("%Y-%m-%d %H:%M:%S")
+    )
+
     return df
 
 
-def get_stream_tweet_count():
-    with DBConnection(get_olap_creds()).managed_cursor() as curr:
+def get_stream_tweet_count() -> int:
+    """Fetches count of tweets in the tweet_stream table in the stream DB."""
+
+    with db_interface.DBConnection(config.get_stream_creds()).managed_cursor() as curr:
         curr.execute("SELECT COUNT(id) FROM tweet_stream;")
         count = curr.fetchall()[0][0]
+
     return count
 
 
 @st.cache(ttl=60 * 60, allow_output_mutation=True)
-def get_batch_tweet_data():
-    with DBConnection(get_oltp_creds()).managed_cursor() as curr:
+def get_batch_tweet_data() -> pd.DataFrame:
+    """Fetches data from the tweet table in the batch DB."""
+
+    with db_interface.DBConnection(config.get_batch_creds()).managed_cursor() as curr:
         curr.execute("SELECT * FROM tweet ORDER BY created_at DESC;")
         data = curr.fetchall()
         cols = [i[0] for i in curr.description]
+
     df = pd.DataFrame(data, columns=cols)
     df = df.set_index(df.id).drop(columns=["id"], axis=1)
+
     return df
 
 
 @st.cache(ttl=60 * 60, allow_output_mutation=True)
-def get_batch_stock_data():
-    with DBConnection(get_oltp_creds()).managed_cursor() as curr:
+def get_batch_stock_data() -> pd.DataFrame:
+    """Fetches data from the stock_price table in the batch DB."""
+
+    with db_interface.DBConnection(config.get_batch_creds()).managed_cursor() as curr:
         curr.execute("SELECT * FROM stock_price ORDER BY timestamp DESC;")
         data = curr.fetchall()
         cols = [i[0] for i in curr.description]
+
     df = pd.DataFrame(data, columns=cols)
+
     return df
 
 
-def aggregate_tweet_sentiment_helper(row, value):
-    if row["sentiment"] == value:
+def aggregate_tweet_sentiment_helper(row: pd.Series, sentiment: str) -> int:
+    """Idea is to get a column for each of negative, neutral, and positive.
+    Each with 1s if the sentiment for that row matches."""
+
+    if row["sentiment"] == sentiment:
         return 1
-    else:
-        return 0
+    return 0
 
 
-def aggregate_tweet_sentiment(df):
-    df["negative"] = df.apply(
-        lambda row: aggregate_tweet_sentiment_helper(row, "negative"), axis=1
-    )
-    df["neutral"] = df.apply(
-        lambda row: aggregate_tweet_sentiment_helper(row, "neutral"), axis=1
-    )
-    df["positive"] = df.apply(
-        lambda row: aggregate_tweet_sentiment_helper(row, "positive"), axis=1
-    )
+def aggregate_tweet_sentiment(df: pd.DataFrame) -> pd.DataFrame:
+    """Aggregate sentiment on a per day basis. Calculate percentage belonging to
+    negative, neutral, and positive sentiment."""
+
+    sentiment_types = ["negative", "neutral", "positive"]
+
+    for sentiment in sentiment_types:
+        df[sentiment] = df.apply(
+            lambda row: aggregate_tweet_sentiment_helper(row=row, sentiment=sentiment),
+            axis=1,
+        )
     df["total"] = df.apply(lambda row: 1, axis=1)
 
     df = df.set_index("created_at").groupby(pd.Grouper(freq="D")).sum()
 
-    df["negative_percent"] = df["negative"] / df["total"]
-    df["neutral_percent"] = df["neutral"] / df["total"]
-    df["positive_percent"] = df["positive"] / df["total"]
+    for sentiment in sentiment_types:
+        df[f"{sentiment}_percent"] = df[sentiment] / df["total"]
 
     df = df[["negative_percent", "neutral_percent", "positive_percent"]]
 
     return df
 
 
-def combine_stock_sentiment_data(stock_price_df, tweet_sentiment_df):
+def combine_stock_sentiment_data(
+    stock_price_df: pd.DataFrame, tweet_sentiment_df: pd.DataFrame
+) -> pd.DataFrame:
+    """Combines stock_price and tweet_sentiment data. Combined data is used for plotting."""
+
     df = stock_price_df.reset_index().merge(
         tweet_sentiment_df,
         how="inner",
         left_on="timestamp",
         right_on="created_at",
     )
+
     return df
 
 
@@ -116,9 +142,26 @@ def main():
             "Streamed Tweet Count",
             stream_tweet_count,
         )
+
+    stream_tweet_data = get_stream_tweet_data()
+    st.write("Verified User Tweets")
     with st.empty():
-        stream_tweet_data = get_stream_tweet_data()
-        st.dataframe(stream_tweet_data)
+        filtered_stream_tweet_data = stream_tweet_data[
+            stream_tweet_data["verified_user"]
+        ]
+        filtered_stream_tweet_data = filtered_stream_tweet_data[
+            ["created_at", "username", "followers", "text"]
+        ]
+        st.dataframe(filtered_stream_tweet_data)
+    st.write("Non-verified User Tweets")
+    with st.empty():
+        filtered_stream_tweet_data = stream_tweet_data[
+            ~stream_tweet_data["verified_user"]
+        ]
+        filtered_stream_tweet_data = filtered_stream_tweet_data[
+            ["created_at", "username", "followers", "text"]
+        ]
+        st.dataframe(filtered_stream_tweet_data)
 
     batch_tweet_data = get_batch_tweet_data()
     batch_stock_data = get_batch_stock_data()
@@ -185,5 +228,6 @@ def main():
     st.experimental_rerun()
 
 
+warnings.filterwarnings("ignore", category=DeprecationWarning)
 st.set_page_config(page_title="Twitter and Stock Price Analysis", page_icon="🚀")
 main()

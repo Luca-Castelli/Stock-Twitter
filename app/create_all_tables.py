@@ -1,9 +1,8 @@
-from utils.config import get_batch_creds, get_stream_creds
-from utils.db_interface import DBConnection
+from utils import config, db_interface
 
 
 def init_stock_data_table() -> None:
-    """Initialize stock and stock_price tables in batch DB."""
+    """Initialize stock and stock_price tables in the batch DB."""
 
     query_delete_stock_stock_price = """
         DROP TABLE IF EXISTS stock, stock_price;
@@ -27,14 +26,14 @@ def init_stock_data_table() -> None:
 
             );
         """
-    with DBConnection(get_batch_creds()).managed_cursor() as curr:
+    with db_interface.DBConnection(config.get_batch_creds()).managed_cursor() as curr:
         curr.execute(query_delete_stock_stock_price)
         curr.execute(query_create_stock)
         curr.execute(query_create_stock_price)
 
 
 def init_twitter_data_table() -> None:
-    """Initialize tweet table in batch DB."""
+    """Initialize tweet table in the batch DB."""
 
     query_delete_tweet = """
         DROP TABLE IF EXISTS tweet;
@@ -50,13 +49,13 @@ def init_twitter_data_table() -> None:
             PRIMARY KEY(id)
             );
         """
-    with DBConnection(get_batch_creds()).managed_cursor() as curr:
+    with db_interface.DBConnection(config.get_batch_creds()).managed_cursor() as curr:
         curr.execute(query_delete_tweet)
         curr.execute(query_create_tweet)
 
 
 def init_twitter_streaming_table() -> None:
-    """Initialize tweet table in stream DB."""
+    """Initialize tweet table in the stream DB."""
 
     query_delete_tweet_stream = """
         DROP TABLE IF EXISTS tweet_stream;
@@ -68,10 +67,12 @@ def init_twitter_streaming_table() -> None:
             username TEXT,
             text TEXT,
             created_at TIMESTAMP,
+            verified_user BOOLEAN,
+            followers INTEGER,
             PRIMARY KEY(id)
             );
         """
-    with DBConnection(get_stream_creds()).managed_cursor() as curr:
+    with db_interface.DBConnection(config.get_stream_creds()).managed_cursor() as curr:
         curr.execute(query_delete_tweet_stream)
         curr.execute(query_create_tweet_stream)
 

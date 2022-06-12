@@ -5,21 +5,19 @@ import boto3
 import pandas as pd
 import yfinance as yf
 
-from utils.config import get_batch_creds, get_twitter_creds
-from utils.db_interface import DBConnection, execute_df_upsert, execute_json_upsert
-from utils.twitter_interface import TwitterConnection
+from utils import config, db_interface, twitter_interface
 
 
 def backfill_stock_data(ticker: str, name: str) -> None:
-    """Backfill stock and stock_price tables going back 1y."""
+    """Backfill stock and stock_price tables in the batch DB going back 1y."""
 
     query_insert = f"INSERT INTO stock(ticker, name) VALUES('{ticker}', '{name}') ON CONFLICT(ticker) DO NOTHING;"
-    with DBConnection(get_batch_creds()).managed_cursor() as curr:
+    with db_interface.DBConnection(config.get_batch_creds()).managed_cursor() as curr:
         curr.execute(query_insert)
 
     stock_price_data = get_stock_prices(ticker)
-    with DBConnection(get_batch_creds()).managed_cursor() as curr:
-        execute_df_upsert(
+    with db_interface.DBConnection(config.get_batch_creds()).managed_cursor() as curr:
+        db_interface.execute_df_upsert(
             df=stock_price_data,
             table_name="stock_price",
             constraint_key="ticker, timestamp",
@@ -28,36 +26,38 @@ def backfill_stock_data(ticker: str, name: str) -> None:
 
 
 def get_stock_prices(ticker: str) -> pd.DataFrame:
-    """Fetch stock prices from Yahoo for a period of 1y and interval of 1d."""
+    """Fetch stock prices from Yahoo Finance for a period of 1y and interval of 1d."""
 
     raw_data = yf.download(tickers=ticker, period="1y", interval="1d")
     data = pd.DataFrame(columns=["ticker", "timestamp", "price"])
     data["timestamp"] = raw_data.index
     data["price"] = raw_data["Close"].values
     data["ticker"] = ticker
+
     return data
 
 
 def backfill_twitter_data(query: str, count: int) -> None:
-    """Backfill tweet table going back 7 days (Twitter API limit)."""
+    """Backfill tweet table in the batch DB and raw tweets into S3 going back 7 days (Twitter API limit)."""
 
-    s3_bucket = "stock-twitter-s3"
+    twitter = twitter_interface.TwitterConnection(config.get_twitter_creds())
 
-    twitter = TwitterConnection(get_twitter_creds())
     processed_tweets = []
-    # Free Twitter search API can only go back 7 days
+    # Free version of the Twitter search API can only go back 7 days.
     for i in range(7, -1, -1):
         date = (datetime.now() - timedelta(days=i)).strftime("%Y-%m-%d")
         tweets = twitter.get_tweets(query=query, count=count, until=date)
         processed_tweets += tweets[0]
-        # Insert raw tweets into data lake (AWS S3)
+
+        # Insert raw tweets into data lake (hosted using AWS S3).
+        s3_bucket = "stock-twitter-s3"
         s3_key = date + "_raw_tweets.json"
         data = json.dumps(tweets[1])
         upload_to_S3(s3_bucket, s3_key, data)
 
-    # Insert processed tweets into OLTP database (AWS RDS)
-    with DBConnection(get_batch_creds()).managed_cursor() as curr:
-        execute_json_upsert(
+    # Insert processed tweets into the batch DB.
+    with db_interface.DBConnection(config.get_batch_creds()).managed_cursor() as curr:
+        db_interface.execute_json_upsert(
             json_data=processed_tweets,
             table_name="tweet",
             constraint_key="twitter_id",
@@ -66,6 +66,8 @@ def backfill_twitter_data(query: str, count: int) -> None:
 
 
 def upload_to_S3(bucket: str, key: str, data: json) -> None:
+    """Upload data to S3."""
+
     s3_client = boto3.client("s3")
     s3_client.put_object(Body=data, Bucket=bucket, Key=key)
 

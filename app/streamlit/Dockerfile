@@ -1,21 +1,16 @@
-FROM python:3.9
+# pull official base image
+FROM python:3.9.5-slim-buster
 
-RUN pip install virtualenv
-ENV VIRTUAL_ENV=/venv
-RUN virtualenv venv -p python3
-ENV PATH="VIRTUAL_ENV/bin:$PATH"
-
+# set work directory
 WORKDIR /usr/src/app
-ADD . /usr/src/app
 
-# Install dependencies
+# install dependencies
+RUN pip install --upgrade pip
+COPY ./requirements.txt /usr/src/app/requirements.txt
 RUN pip install -r requirements.txt
 
-# copying all files over
+# copy project
 COPY . /usr/src/app
-
-# Expose port 
-ENV PORT 8501
 
 # cmd to launch app when container is run
 CMD streamlit run app.py

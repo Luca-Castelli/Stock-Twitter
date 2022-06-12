@@ -19,25 +19,42 @@ CONSUMER = KafkaConsumer(
 )
 
 
-def stream_tweets_consume():
+def stream_tweets_consume() -> None:
+    """Consumer for the TWEET_STREAM Kafka topic. Loads consumed tweets into the stream DB."""
+
     for message in CONSUMER:
 
         tweet = json.loads(json.dumps(message.value))
+
+        if tweet["retweeted"] or "RT @" in tweet["text"]:
+            continue
+
+        if tweet["truncated"]:
+            text = tweet["extended_tweet"]["full_text"]
+        else:
+            text = tweet["text"]
 
         single_tweet_data = [
             {
                 "twitter_id": tweet["id"],
                 "username": tweet["user"]["screen_name"],
-                "text": tweet["text"],
+                "text": text,
                 "created_at": tweet["created_at"],
+                "verified_user": tweet["user"]["verified"],
+                "followers": tweet["user"]["followers_count"],
             }
         ]
-        print(single_tweet_data)
+
+        print(f"CONSUMER: {single_tweet_data}\n")
+
         with db_interface.DBConnection(
-            config.get_batch_creds()
+            config.get_stream_creds()
         ).managed_cursor() as curr:
             db_interface.execute_json_upsert(
-                single_tweet_data, "twitter_id", "tweet_stream", curr
+                json_data=single_tweet_data,
+                constraint_key="twitter_id",
+                table_name="tweet_stream",
+                curr=curr,
             )
 
 
