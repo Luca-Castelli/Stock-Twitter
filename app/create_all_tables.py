@@ -69,6 +69,7 @@ def init_twitter_streaming_table() -> None:
             created_at TIMESTAMP,
             verified_user BOOLEAN,
             followers INTEGER,
+            sentiment TEXT,
             PRIMARY KEY(id)
             );
         """

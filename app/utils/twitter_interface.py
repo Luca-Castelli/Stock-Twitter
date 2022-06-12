@@ -24,27 +24,6 @@ class TwitterConnection(object):
         except:
             print("Error: Auth failed")
 
-    def clean_tweet(self, tweet):
-        """Utility function to clean tweet text by removing links and special characters using simple regex statements."""
-
-        return " ".join(
-            re.sub(
-                "(@[A-Za-z0-9]+)|([^0-9A-Za-z \t])|(\w+:\/\/\S+)", " ", tweet
-            ).split()
-        )
-
-    def get_tweet_sentiment(self, tweet):
-        """Utility function to classify sentiment of passed tweet using textblob's sentiment method."""
-
-        analysis = TextBlob(self.clean_tweet(tweet))
-
-        if analysis.sentiment.polarity > 0:
-            return "positive"
-        elif analysis.sentiment.polarity == 0:
-            return "neutral"
-        else:
-            return "negative"
-
     def get_tweets(
         self, query: str, count: int = 1000, until: str = None
     ) -> Tuple[List, List]:
@@ -72,7 +51,7 @@ class TwitterConnection(object):
                     "username": tweet.user.name,
                     "text": tweet.text,
                     "created_at": datetime.strftime(tweet.created_at, "%Y%m%d"),
-                    "sentiment": self.get_tweet_sentiment(tweet.text),
+                    "sentiment": get_tweet_sentiment(tweet.text),
                 }
 
                 # If tweet has retweets, ensure it only gets appended once.
@@ -88,3 +67,24 @@ class TwitterConnection(object):
 
         except tw.TweepError as error:
             print("Error : " + str(error))
+
+
+def clean_tweet(tweet: str) -> str:
+    """Utility function to clean tweet text by removing links and special characters using simple regex statements."""
+
+    return " ".join(
+        re.sub("(@[A-Za-z0-9]+)|([^0-9A-Za-z \t])|(\w+:\/\/\S+)", " ", tweet).split()
+    )
+
+
+def get_tweet_sentiment(tweet: str) -> str:
+    """Utility function to classify sentiment of passed tweet using textblob's sentiment method."""
+
+    analysis = TextBlob(clean_tweet(tweet))
+
+    if analysis.sentiment.polarity > 0:
+        return "positive"
+    elif analysis.sentiment.polarity == 0:
+        return "neutral"
+    else:
+        return "negative"

@@ -14,7 +14,7 @@ def get_stream_tweet_data() -> pd.DataFrame:
 
     with db_interface.DBConnection(config.get_stream_creds()).managed_cursor() as curr:
         curr.execute(
-            "SELECT created_at, username, verified_user, followers, text FROM tweet_stream ORDER BY created_at DESC;"
+            "SELECT twitter_id, created_at, username, verified_user, followers, sentiment, text FROM tweet_stream ORDER BY created_at DESC;"
         )
         data = curr.fetchall()
         cols = [i[0] for i in curr.description]
@@ -136,21 +136,48 @@ def main():
     st.write("#")
     st.header("Live Tweet Stream")
     st.success("Live data refreshing every 5 seconds.")
-    with st.empty():
-        stream_tweet_count = get_stream_tweet_count()
-        st.metric(
-            "Streamed Tweet Count",
-            stream_tweet_count,
-        )
 
     stream_tweet_data = get_stream_tweet_data()
+
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        total_stream_count = stream_tweet_data["twitter_id"].count()
+        st.metric(
+            "Total Tweet Count",
+            total_stream_count,
+        )
+    with col2:
+        negative_stream_count = stream_tweet_data[
+            stream_tweet_data["sentiment"] == "negative"
+        ]["twitter_id"].count()
+        st.metric(
+            "Negative Tweet Count",
+            negative_stream_count,
+        )
+    with col3:
+        neutral_stream_count = stream_tweet_data[
+            stream_tweet_data["sentiment"] == "neutral"
+        ]["twitter_id"].count()
+        st.metric(
+            "Neutral Tweet Count",
+            neutral_stream_count,
+        )
+    with col4:
+        positive_stream_count = stream_tweet_data[
+            stream_tweet_data["sentiment"] == "positive"
+        ]["twitter_id"].count()
+        st.metric(
+            "Positive Tweet Count",
+            positive_stream_count,
+        )
+
     st.write("Verified User Tweets")
     with st.empty():
         filtered_stream_tweet_data = stream_tweet_data[
             stream_tweet_data["verified_user"]
         ]
         filtered_stream_tweet_data = filtered_stream_tweet_data[
-            ["created_at", "username", "followers", "text"]
+            ["created_at", "username", "followers", "sentiment", "text"]
         ]
         st.dataframe(filtered_stream_tweet_data)
     st.write("Non-verified User Tweets")
@@ -159,7 +186,7 @@ def main():
             ~stream_tweet_data["verified_user"]
         ]
         filtered_stream_tweet_data = filtered_stream_tweet_data[
-            ["created_at", "username", "followers", "text"]
+            ["created_at", "username", "followers", "sentiment", "text"]
         ]
         st.dataframe(filtered_stream_tweet_data)
 
@@ -227,6 +254,9 @@ def main():
     time.sleep(5)
     st.experimental_rerun()
 
+
+# with open("styles.css") as f:
+#     st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 st.set_page_config(page_title="Twitter and Stock Price Analysis", page_icon="🚀")

@@ -3,7 +3,7 @@ from datetime import datetime
 
 from kafka import KafkaConsumer
 
-from utils import config, db_interface
+from utils import config, db_interface, twitter_interface
 
 TOPIC_NAME = "TWEET_STREAM"
 
@@ -42,6 +42,7 @@ def stream_tweets_consume() -> None:
                 "created_at": tweet["created_at"],
                 "verified_user": tweet["user"]["verified"],
                 "followers": tweet["user"]["followers_count"],
+                "sentiment": twitter_interface.get_tweet_sentiment(text),
             }
         ]
 

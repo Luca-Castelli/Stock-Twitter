@@ -6,6 +6,10 @@ Tool for users to analyze and explore the relationship between investor sentimen
 
 The first section shows a real-time stream of tweets.
 
+- Count of tweets streamed
+- Verified user tweets
+- Non-verified user tweets
+
 The second section shows two timeseries charts.
 
 - stock ticker's chart
