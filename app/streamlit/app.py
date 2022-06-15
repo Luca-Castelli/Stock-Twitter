@@ -30,16 +30,6 @@ def get_stream_tweet_data() -> pd.DataFrame:
     return df
 
 
-def get_stream_tweet_count() -> int:
-    """Fetches count of tweets in the tweet_stream table in the stream DB."""
-
-    with db_interface.DBConnection(config.get_stream_creds()).managed_cursor() as curr:
-        curr.execute("SELECT COUNT(id) FROM tweet_stream;")
-        count = curr.fetchall()[0][0]
-
-    return count
-
-
 @st.cache(ttl=60 * 60, allow_output_mutation=True)
 def get_batch_tweet_data() -> pd.DataFrame:
     """Fetches data from the tweet table in the batch DB."""
