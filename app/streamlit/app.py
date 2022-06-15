@@ -170,6 +170,7 @@ def main():
             ["created_at", "username", "followers", "sentiment", "text"]
         ]
         st.dataframe(filtered_stream_tweet_data)
+
     st.write("Non-verified User Tweets")
     with st.empty():
         filtered_stream_tweet_data = stream_tweet_data[
@@ -186,6 +187,7 @@ def main():
     combined_data = combine_stock_sentiment_data(
         batch_stock_data, batch_tweet_sentiment
     )
+
     st.write("#")
     st.header("Twitter Sentiment and Stock Price")
     st.info("Data updated every weekday at 5pm EST.")
@@ -244,9 +246,6 @@ def main():
     time.sleep(5)
     st.experimental_rerun()
 
-
-# with open("styles.css") as f:
-#     st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 st.set_page_config(page_title="Twitter and Stock Price Analysis", page_icon="🚀")
